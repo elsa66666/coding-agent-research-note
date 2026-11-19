@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef2e9">
+<meta name="description" content="RQ1：Coding Agent 的能力边界是什么；RQ2：Multi Agent 相比 Single Agent 的增益从哪里来。基于 2025-12 至 2026-11 第一方报告的证据整理。">
+<title>Coding Agent 调研：能力边界与多 Agent 验证</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f8faf5;
+    --wash: #eef2e9;
+    --ink: #172b22;
+    --muted: #475b50;
+    --rule: #cbd6ca;
+    --green: #17613f;
+    --forest: #102c23;
+    --lime: #d7f083;
+    --serif: "Songti SC", "Noto Serif CJK SC", "Noto Serif SC", "SimSun", Georgia, serif;
+    --sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    --max: 74rem;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html {
+    --nav-height: 4.65rem;
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--nav-height) + env(safe-area-inset-top) + .8rem);
+  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.78 var(--sans); }
+  ::selection { background: var(--lime); color: var(--forest); }
+  a { color: var(--green); text-underline-offset: .23em; }
+  a:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+  a:hover { text-decoration-thickness: 2px; }
+  h1, h2, h3, p, figure, ol, ul, dl, dd { margin: 0; }
+  h1, h2, h3 { line-height: 1.27; }
+  .wrap { width: min(var(--max), calc(100% - 6rem)); margin-inline: auto; }
+  .skip { position: fixed; inset: calc(env(safe-area-inset-top) + .25rem) auto auto 1rem; z-index: 21; padding: .5rem 1rem; background: white; transform: translateY(calc(-180% - env(safe-area-inset-top))); }
+  .skip:focus { transform: none; }
+
+  .masthead {
+    position: sticky; top: 0; z-index: 20;
+    padding-top: env(safe-area-inset-top);
+    background: var(--wash); border-bottom: 1px solid var(--rule);
+  }
+  .masthead-inner { display: flex; min-height: var(--nav-height); justify-content: space-between; align-items: center; gap: 1.25rem; }
+  .publication { color: var(--ink); font: 700 1rem/1.2 Georgia, var(--serif); text-decoration: none; white-space: nowrap; }
+  .publication-mark { display: inline-block; width: .64rem; height: .64rem; margin-right: .57rem; background: var(--green); transform: rotate(45deg); vertical-align: .07em; }
+  .nav {
+    display: flex; min-width: 0; align-items: stretch; gap: .25rem;
+    overflow-x: auto; scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a {
+    display: flex; flex: 0 0 auto; align-items: center; min-height: var(--nav-height);
+    padding: .3rem .7rem 0; border-bottom: 3px solid transparent;
+    color: var(--muted); font-size: .875rem; line-height: 1.3; white-space: nowrap; text-decoration: none;
+  }
+  .nav a:hover, .nav a[aria-current="location"] { color: var(--green); border-bottom-color: var(--green); }
+  .nav a:focus-visible { outline-offset: -4px; }
+  .nav .nav-overview { display: none; }
+  .footer a { font-size: .875rem; color: var(--muted); text-decoration: none; }
+  .footer a:hover { color: var(--green); text-decoration: underline; }
+
+  .hero { background: var(--wash); border-bottom: 1px solid var(--rule); }
+  .hero-grid {
+    display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+    gap: clamp(2.4rem, 6vw, 5rem); align-items: center;
+    padding-block: clamp(3.8rem, 7vw, 6.5rem);
+  }
+  .dateline { margin-bottom: 1.15rem; color: var(--green); font-size: .875rem; font-weight: 650; }
+  .dateline time { font-family: var(--mono); font-size: .875rem; font-weight: 500; margin-left: .45rem; }
+  h1 { font: 750 clamp(2.4rem, 5vw, 4.9rem)/1.13 var(--serif); letter-spacing: -.067em; }
+  h1 .english { display: block; font-family: Georgia, serif; font-weight: 700; letter-spacing: -.075em; }
+  h1 .question { display: block; color: var(--green); font-size: clamp(2rem, 4.3vw, 4.1rem); }
+  .summary-points {
+    margin-top: 1.5rem; max-width: 35rem; padding-left: 1.15rem;
+    font-size: clamp(1rem, 1.45vw, 1.14rem); line-height: 1.65; color: var(--muted);
+  }
+  .summary-points li + li { margin-top: .52rem; }
+  .summary-points li::marker, .points li::marker, .compact-points li::marker { color: var(--green); }
+  .summary-points strong, .points strong { color: var(--ink); font-weight: 750; }
+
+  .mechanism {
+    background-color: var(--forest);
+    background-image: radial-gradient(circle, #64807158 .7px, transparent .9px);
+    background-size: 15px 15px;
+    border: 1px solid #254339;
+    color: #f2f7ee;
+    padding: clamp(1.25rem, 2.9vw, 2rem);
+  }
+  .mechanism-title { color: var(--lime); font-size: 1.05rem; font-weight: 700; }
+  .mechanism-note { color: #d4e3d7; font-size: .875rem; margin-top: .3rem; line-height: 1.58; }
+  .flow { margin-top: 1.25rem; display: grid; justify-items: stretch; text-align: center; }
+  .node {
+    display: grid; align-content: center; min-height: 2.7rem; width: max-content; max-width: 100%;
+    justify-self: center; padding: .35rem .8rem; line-height: 1.35;
+    border: 1px solid #5b7d6d; background: #18392d; font-size: .875rem;
+  }
+  .node.error { border-color: #bacb70; color: #f2f8ca; }
+  .node.pass { background: var(--lime); color: #122d22; font-weight: 700; border-color: var(--lime); }
+  .stem { width: 1px; height: .76rem; background: #94aa99; justify-self: center; }
+  .fork { width: 50%; height: .72rem; border: 1px solid #94aa99; border-bottom: 0; justify-self: center; }
+  .fork.join { transform: rotate(180deg); }
+  .branches { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin-inline: -.25rem; }
+  .mechanism figcaption { border-top: 1px solid #597769; margin-top: 1.25rem; padding-top: .85rem; color: #e1eddf; font-size: .875rem; line-height: 1.6; }
+  .mechanism figcaption strong { color: var(--lime); }
+  .mechanism .cite { color: var(--lime); }
+  .mechanism .cite:focus-visible { outline-color: var(--lime); }
+
+  main > .wrap { padding-block: 1rem 4rem; }
+  .chapter {
+    display: grid; grid-template-columns: minmax(9rem, .31fr) minmax(0, 1fr);
+    gap: clamp(1.6rem, 4vw, 4.1rem); padding-block: clamp(2.5rem, 6vw, 4.4rem);
+    border-bottom: 1px solid var(--rule);
+  }
+  .side-label { color: var(--green); font-size: .875rem; font-weight: 700; align-self: start; }
+  .side-label::before { content: ""; display: inline-block; width: 1.2rem; height: 2px; margin-right: .58rem; vertical-align: .27em; background: var(--green); }
+  .chapter h2, .references h2 { font: 750 clamp(1.8rem, 3.4vw, 2.75rem)/1.22 var(--serif); letter-spacing: -.045em; }
+  .lede { margin-top: .9rem; max-width: 49rem; color: var(--muted); font-size: 1.02rem; line-height: 1.75; }
+  .points { margin-top: 1rem; max-width: 49rem; padding-left: 1.2rem; color: #344a3e; }
+  .points li + li { margin-top: .6rem; }
+  .points time { font: 500 .875rem/1.3 var(--mono); color: var(--green); white-space: nowrap; }
+  .compact-points { padding-left: 1.1rem; color: var(--muted); font-size: .9375rem; line-height: 1.66; }
+  .compact-points li + li { margin-top: .35rem; }
+  .cite { display: inline-block; margin-inline: .2em; font: 700 .87em/1.25 var(--mono); text-decoration: underline; white-space: nowrap; vertical-align: .15em; }
+
+  .scores { margin-top: 1.65rem; padding: 1.25rem clamp(1.05rem, 3vw, 1.75rem); border: 1px solid var(--rule); background: #f1f5ee; }
+  .figure-title { font-size: 1rem; font-weight: 750; }
+  .score-rows { display: grid; gap: .65rem; margin-top: .85rem; }
+  .score-row { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr) 4.6rem; align-items: center; gap: .8rem; }
+  .score-row dt { font-size: .875rem; color: var(--muted); }
+  .score-row .track { height: .77rem; background: #dce6d9; }
+  .score-row .track span { display: block; width: var(--value); height: 100%; background: #5b8d6b; }
+  .score-row:last-child .track span { background: var(--green); }
+  .score-row .value { text-align: right; font: 700 .875rem/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+  .scores figcaption { margin-top: .9rem; color: var(--muted); font-size: .875rem; line-height: 1.64; }
+  .hypothesis { margin-top: 1.5rem; padding: 1rem 1.3rem; border-left: 3px solid var(--green); background: #eaf1e6; }
+  .hypothesis h3 { font-size: .94rem; color: var(--green); }
+  .hypothesis .points { margin-top: .5rem; }
+  .explanations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1.45rem; }
+  .explanation { padding: 0 1.15rem 0 0; }
+  .explanation + .explanation { padding: 0 0 0 1.15rem; border-left: 1px solid var(--rule); }
+  .explanation h3 { font-size: 1rem; margin-bottom: .45rem; }
+  .conditions dd { font-size: .9375rem; color: var(--muted); line-height: 1.72; }
+
+  .protocol { margin-top: 1.55rem; border: 1px solid var(--rule); }
+  .protocol-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; }
+  .protocol-list li { padding: 1rem 1.1rem; min-width: 0; }
+  .protocol-list li + li { border-left: 1px solid var(--rule); }
+  .protocol-list h3 { font-size: 1rem; color: var(--green); margin-bottom: .45rem; }
+  .protocol-list p { color: var(--muted); font-size: .9rem; line-height: 1.62; }
+  .protocol figcaption { padding: .65rem 1.1rem; background: #eef3eb; border-top: 1px solid var(--rule); color: var(--muted); font-size: .875rem; }
+  .conditions { margin-top: 1.3rem; }
+  .condition { display: grid; grid-template-columns: minmax(6.9rem, .23fr) minmax(0, 1fr); gap: 1rem; padding-block: .76rem; border-bottom: 1px solid var(--rule); }
+  .condition:last-child { border-bottom: none; }
+  .condition dt { padding-top: .02rem; font-size: .9375rem; font-weight: 750; }
+
+  .open-question { display: grid; grid-template-columns: minmax(9rem, .31fr) minmax(0, 1fr); gap: clamp(1.6rem, 4vw, 4.1rem); margin-top: 2.8rem; padding: clamp(1.4rem, 4vw, 2.7rem); background: #e8f0de; border: 1px solid #c9d9bf; }
+  .open-question h2 { font: 750 clamp(1.52rem, 2.5vw, 2.1rem)/1.35 var(--serif); letter-spacing: -.035em; }
+  .open-question .points { margin-top: .8rem; font-size: .9375rem; line-height: 1.65; }
+
+  .references { display: grid; grid-template-columns: minmax(9rem, .31fr) minmax(0, 1fr); gap: clamp(1.6rem, 4vw, 4.1rem); padding-top: clamp(3rem, 6vw, 5rem); }
+  .references h2 { font-family: Georgia, var(--serif); font-size: clamp(1.8rem, 3.15vw, 2.65rem); }
+  .reference-list { list-style: none; padding: 0; border-top: 1px solid var(--rule); }
+  .reference-list li { display: grid; grid-template-columns: 2.15rem minmax(0, 1fr); gap: .65rem; padding: .74rem .48rem; border-bottom: 1px solid var(--rule); }
+  .reference-list li:target { background: #edf4d6; box-shadow: inset 3px 0 var(--green); }
+  .ref-num { color: var(--green); font: 700 .875rem/1.7 var(--mono); align-self: start; padding-top: .08rem; }
+  .ref-title { color: var(--ink); font-size: .97rem; font-weight: 700; }
+  .ref-meta { margin-top: .1rem; color: var(--muted); font-size: .875rem; line-height: 1.55; }
+  .ref-meta time { font-family: var(--mono); }
+  .footer { border-top: 1px solid var(--rule); background: var(--wash); }
+  .footer .wrap { padding-block: 1.4rem; display: flex; justify-content: space-between; gap: .9rem; align-items: center; }
+  .footer p { color: var(--muted); font-size: .875rem; }
+
+  @media(max-width: 64rem) {
+    .wrap { width: calc(100% - 4rem); }
+    .hero-grid { gap: 2rem; }
+  }
+  @media(max-width: 48rem) {
+    html { --nav-height: 3rem; }
+    .wrap { width: calc(100% - 2.5rem); }
+    .masthead-inner { display: block; width: 100%; }
+    .masthead .publication { display: none; }
+    .nav { padding-inline: max(.6rem, env(safe-area-inset-left)) max(.6rem, env(safe-area-inset-right)); }
+    .nav .nav-overview { display: flex; }
+    .nav a { padding-inline: .66rem; }
+    .ref-title { overflow-wrap: anywhere; }
+    .hero-grid { grid-template-columns: 1fr; padding-block: 2.6rem 2.8rem; gap: 1.9rem; }
+    h1 { font-size: clamp(2.45rem, 8.4vw, 3.9rem); }
+    h1 .question { font-size: clamp(1.9rem, 7.6vw, 3.4rem); }
+    .summary-points { margin-top: 1.15rem; }
+    .mechanism { max-width: 35rem; }
+    .chapter, .references, .open-question { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+    .chapter { padding-block: 2.35rem; }
+    main > .wrap { padding-block: 0 2.8rem; }
+  }
+  @media(max-width: 29rem) {
+    .wrap { width: calc(100% - 2rem); }
+    .score-row { grid-template-columns: 4.85rem minmax(0, 1fr) 3.65rem; gap: .53rem; }
+    .explanations, .protocol-list { grid-template-columns: 1fr; }
+    .explanation { padding: 0 0 .85rem; }
+    .explanation + .explanation { border-left: 0; border-top: 1px solid var(--rule); padding: .85rem 0 0; }
+    .protocol-list li + li { border-left: 0; border-top: 1px solid var(--rule); }
+    .condition { grid-template-columns: minmax(0, 1fr); gap: .16rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  @media print {
+    body { background: white; }
+    .wrap { width: 100%; }
+    html { scroll-padding-top: 0; }
+    .masthead, .footer, .skip { display: none; }
+    .chapter, .scores, .protocol, .mechanism { break-inside: avoid; }
+    .hero-grid { padding-block: 1.4rem; }
+    .mechanism, .scores { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body id="top">
+<a class="skip" href="#main">跳到正文</a>
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="publication" href="#top"><span class="publication-mark" aria-hidden="true"></span>Research Note</a>
+    <nav class="nav" aria-label="页内导航">
+      <a class="nav-overview" href="#top" aria-current="location">概览</a>
+      <a href="#why-coding">背景</a>
+      <a href="#rq1-assumption">RQ1 能力边界</a>
+      <a href="#transition">过渡方案</a>
+      <a href="#rq2-assumption">RQ2 多 Agent</a>
+      <a href="#gaps">文献更新</a>
+      <a href="#rsi">RSI</a>
+      <a href="#model-choice">模型选型</a>
+      <a href="#references">参考文献</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="dateline">证据窗口 <time datetime="2025-12-01">2025-12-01</time> 至 <time datetime="2026-11-19">2026-11-19</time></p>
+      <h1><span class="english" lang="en">Coding Agent</span><span class="question">能力边界与多 Agent 验证</span></h1>
+      <ul class="summary-points" aria-label="研究问题">
+        <li><strong>RQ1</strong> Coding Agent 的能力边界是什么？检验其隐含假设：eval 分数充分反映「能完成需求」。</li>
+        <li><strong>RQ2</strong> Multi Agent 相比 Single Agent 的增益从哪里来？检验其隐含假设：交叉验证能发现单 Agent 自反思与迭代发现不了的缺陷。</li>
+        <li><strong>证据口径</strong> 仅采用第一方技术报告与可复核的评测审计，逐条标注发布日期。基模与 harness 迭代迅速，较早结论按日期折旧。</li>
+        <li><strong>工程判断</strong> 独立验收流程可以现在落地：跨代复用的是验收标准、缺陷用例与评测方法；随模型升级重新标定的是复核范围、reviewer 选择与预算分配。</li>
+      </ul>
+    </div>
+    <figure class="mechanism" aria-labelledby="mechanism-title">
+      <h2 id="mechanism-title" class="mechanism-title">自写测试的盲区</h2>
+      <p class="mechanism-note">实现与测试共享需求解释时的失效机制（RQ1 核心瓶颈）</p>
+      <div class="flow" aria-hidden="true">
+        <div class="node">原始需求</div>
+        <div class="stem"></div>
+        <div class="node error">共享的错误解释</div>
+        <div class="stem"></div><div class="fork"></div>
+        <div class="branches">
+          <div class="node">候选实现</div>
+          <div class="node">自生成测试</div>
+        </div>
+        <div class="fork join"></div><div class="stem"></div>
+        <div class="node pass">测试通过</div>
+      </div>
+      <figcaption>示意图 · <strong>测试通过可与需求偏差并存。</strong><a class="cite" href="#ref-6" aria-label="参考文献 6">[6]</a></figcaption>
+    </figure>
+  </div>
+</div>
+
+<main id="main">
+  <div class="wrap">
+
+    <!-- ============ 背景 / 为什么是 Coding ============ -->
+    <section class="chapter" id="why-coding" aria-labelledby="why-coding-title">
+      <p class="side-label">背景 · 为什么是 Coding</p>
+      <div>
+        <h2 id="why-coding-title">Coding 具备可规模化训练的条件，并作为其他能力的底座</h2>
+        <p class="lede">展开两个研究问题之前，先说明为什么以 coding agent 为研究对象。论点一：coding 满足后训练持续 Scaling 的三个条件，编码指标在固定口径内增长显著。论点二：现阶段其他 Agent 能力建立在 coding 之上，有稳定接口、终态可检查的任务优先走程序化路径。<a class="cite" href="#ref-13" aria-label="参考文献 13">[13]</a><a class="cite" href="#ref-37" aria-label="参考文献 37">[37]</a><a class="cite" href="#ref-38" aria-label="参考文献 38">[38]</a><a class="cite" href="#ref-42" aria-label="参考文献 42">[42]</a></p>
+        <div class="explanations">
+          <div class="explanation">
+            <h3>可 Scaling 条件与增速快照</h3>
+            <ul class="compact-points">
+              <li><strong>奖励可验证。</strong>代码任务的奖励直接依赖编译器与单元测试，是后训练持续 Scaling 的基础。Qwen3-Coder-Next 即以可执行环境和验证反馈训练（2026-02-28）。<a class="cite" href="#ref-13">[13]</a></li>
+              <li><strong>环境可批量制作。</strong>仓库、issue、测试能组合出新任务，环境可沿任务、工作区、harness 三个维度组合扩展。</li>
+              <li><strong>指标可量化。</strong>通过率、任务 token 消耗均可定义客观指标，迭代方向清晰——这也是本笔记能逐条引用数字的前提。</li>
+              <li><strong>增速只能按固定口径的快照读。</strong>Opus 4.7→4.8：SWE-bench Verified <strong>+1.0</strong>、OSWorld-Verified <strong>+0.6</strong> 个百分点（2026-05）；Fable 5.1→5.2：FrontierSWE v2 <strong>+13.6</strong>、OSWorld 2.1 离线 <strong>+5.8</strong>、AutomationBench <strong>+20.0</strong> 个百分点（2026-11）。任务集、评分口径与天花板都在变，跨口径比较增速不成立。<a class="cite" href="#ref-41">[41]</a><a class="cite" href="#ref-42">[42]</a></li>
+            </ul>
+          </div>
+          <div class="explanation">
+            <h3>底座论：其他能力如何依赖 Coding</h3>
+            <ul class="compact-points">
+              <li><strong>程序化路径的适用条件。</strong>同模型直接对照方向相反：Sonnet 4.6 在 343 题上 GUI <strong>73.0%</strong> vs CLI <strong>67.2%</strong>，但 CLI 耗时约为 GUI 的 1/4（141 vs 622 秒/题，2026-05-19）；GPT-5.4 在 440 道办公任务上 GUI <strong>59.1%</strong> vs CLI <strong>24.3%</strong>，主因是原始 CLI skills 仅覆盖 <strong>37.6%</strong> 的评分检查点，补齐接口后另一组 CLI 从 48.2% 升至 69.3%（2026-06-22）。<a class="cite" href="#ref-37">[37]</a><a class="cite" href="#ref-38">[38]</a></li>
+              <li><strong>判断。</strong>有稳定原生接口、终态可检查的任务优先走程序化路径；涉及视觉布局、应用运行状态或接口覆盖缺口时保留 GUI。工具能否表达所需操作直接改变结果：同一 Excel 工作簿任务，Python / Office.js / VBA 严格通过率为 <strong>18.7% / 19.3% / 33.7%</strong>（2026-08）。<a class="cite" href="#ref-39">[39]</a><a class="cite" href="#ref-40">[40]</a></li>
+              <li><strong>代码让结果可检查。</strong>以代码交付的任务可复现、可定位错误——与 RQ2 中「可执行检查优于静态阅读」的机制一致。<a class="cite" href="#ref-19">[19]</a></li>
+              <li><strong>长程任务靠代码兜底。</strong>数百步的长程执行依赖分阶段交付、每步可验证、出错可回滚，载体是测试与脚本。<a class="cite" href="#ref-6">[6]</a><a class="cite" href="#ref-16">[16]</a></li>
+            </ul>
+          </div>
+        </div>
+        <dl class="conditions">
+          <div class="condition"><dt>与 RQ1 的衔接</dt><dd>在 SWE 评测里能修 bug，不等于能在企业仓库交付——私有依赖、早期配置与权限均在现有评测口径之外。这正是 RQ1 对「eval 分数充分反映能完成需求」假设的质疑。</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ RQ1 / Assumption ============ -->
+    <section class="chapter" id="rq1-assumption" aria-labelledby="rq1-title">
+      <p class="side-label">RQ1 · 能力边界</p>
+      <div>
+        <h2 id="rq1-title">Coding Agent 的能力边界是什么？</h2>
+        <p class="lede">讨论能力边界前需先检验一个隐含假设：eval 分数充分反映「能完成需求」。若假设成立，SWE-bench 类榜单可直接读作能力边界；下列证据表明该假设在口径、题目质量与真实验收三个层面均不完全成立。</p>
+        <aside class="hypothesis">
+          <h3>Assumption 检验 · Eval 分数 ≠ 能完成需求</h3>
+          <ul class="points">
+            <li><strong>口径层面。</strong>同一批任务下，「能构建」「单项通过」「整体验收通过」是三个相差悬殊的数字（见下图）。<a class="cite" href="#ref-1" aria-label="参考文献 1">[1]</a></li>
+            <li><strong>题目层面。</strong>OpenAI 审计 SWE-Bench Pro 全部 731 道公开题：Agent 管线判定 <strong>27.4%</strong>、人工标注判定 <strong>34.1%</strong> 存在妨碍有效评测的问题（<time datetime="2026-07-08">2026-07-08</time>）。Scale 随后复审，修订或移除 <strong>480 道</strong>，形成 642 题的 V2（<time datetime="2026-10-16">2026-10-16</time>）。<a class="cite" href="#ref-3" aria-label="参考文献 3">[3]</a><a class="cite" href="#ref-4" aria-label="参考文献 4">[4]</a></li>
+            <li><strong>真实验收层面。</strong>METR 请 3 个项目的 4 名维护者审阅 296 个 Agent PR：约半数通过 SWE-bench Verified 测试的 PR 仍不会被合并。注意其纳入的是 2024–2025 年中后期 Agent，结论需按时效折旧（<time datetime="2026-03-10">2026-03-10</time>）。<a class="cite" href="#ref-2" aria-label="参考文献 2">[2]</a></li>
+            <li><strong>当前边界的较严口径。</strong>FrontierCode 2.0 以「维护者是否会合并 PR」评分：Claude Opus 5.5 为 <strong>47.3%</strong>（<time datetime="2026-10-27">2026-10-27</time>），Fable 5.2 在 xhigh 档为 <strong>49.1%</strong>（<time datetime="2026-11-09">2026-11-09</time>）。在最接近真实需求的口径下，2026 年最强模型仍不足 50%。<a class="cite" href="#ref-5" aria-label="参考文献 5">[5]</a><a class="cite" href="#ref-7" aria-label="参考文献 7">[7]</a></li>
+          </ul>
+        </aside>
+        <figure class="scores" aria-labelledby="scores-title">
+          <h3 id="scores-title" class="figure-title">GLM-5 在 React 任务上的三种验收口径</h3>
+          <dl class="score-rows">
+            <div class="score-row"><dt>构建成功率</dt><dd class="track" aria-hidden="true"><span style="--value: 100%"></span></dd><dd class="value">100%</dd></div>
+            <div class="score-row"><dt>单项通过率</dt><dd class="track" aria-hidden="true"><span style="--value: 71%"></span></dd><dd class="value">71.0%</dd></div>
+            <div class="score-row"><dt>整实例成功率</dt><dd class="track" aria-hidden="true"><span style="--value: 34.6%"></span></dd><dd class="value">34.6%</dd></div>
+          </dl>
+          <figcaption>CC-Bench-V2 · 三项指标采用不同统计单位 · <time datetime="2026-02-17">2026-02-17</time><a class="cite" href="#ref-1" aria-label="参考文献 1">[1]</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============ RQ1 / 瓶颈与证据 ============ -->
+    <section class="chapter" id="rq1-bottleneck" aria-labelledby="rq1-bottleneck-title">
+      <p class="side-label">RQ1 · 瓶颈与证据</p>
+      <div>
+        <h2 id="rq1-bottleneck-title">瓶颈：验证盲区、长程累积与汇报失真</h2>
+        <p class="lede">以下证据全部来自 2026 年 5 月以后的报告，对应仍未被最新一代模型解决的失效模式。</p>
+        <ul class="points">
+          <li><strong>自写测试与实现共享误解。</strong>Multi-step SWE 中，Qwen3.8 Max 为通过自生成测试，将 IMAP MOVE 的参数顺序改为与仓库内规范相反；Fable 5.1 的 CSS 引擎通过全部可见测试，float 布局仍错（<time datetime="2026-11-04">2026-11-04</time>）。<a class="cite" href="#ref-6" aria-label="参考文献 6">[6]</a></li>
+          <li><strong>长程误差累积。</strong>同一评测让 Agent 在自己的代码上完成 69 项任务、574 个有依赖的步骤：Claude Opus 5.5 步骤通过率 <strong>56.8%</strong>，整条任务完成率仅 <strong>18.5%</strong>（<time datetime="2026-11-04">2026-11-04</time>）。<a class="cite" href="#ref-6" aria-label="参考文献 6">[6]</a></li>
+          <li><strong>独立写测试也偏顺利路径。</strong>SWE Atlas Test Writing（90 个仓库任务）中，各模型的变异检查通过率普遍高于必选 rubric 通过率，归因于漏测边界条件、断言太弱（<time datetime="2026-05-07">2026-05-07</time>）。<a class="cite" href="#ref-8" aria-label="参考文献 8">[8]</a></li>
+          <li><strong>函数级对照。</strong>固定错误实现，五个受测模型在隔离会话、仅依据需求编写测试时，均比在原会话中基于实现写测试检出更多缺陷（<time datetime="2026-07-06">2026-07-06</time>）。<a class="cite" href="#ref-9" aria-label="参考文献 9">[9]</a></li>
+          <li><strong>汇报失真。</strong>在人为设置阻碍的编码任务中，GPT-6.2 Astra 有 <strong>22.28%</strong> 的试验漏报它已知的阻碍（上代 GPT-6 Astra 为 11.09%）。该指标描述最终汇报而非补丁正确率，且随代际上升（<time datetime="2026-11-17">2026-11-17</time>）。<a class="cite" href="#ref-10" aria-label="参考文献 10">[10]</a></li>
+        </ul>
+        <aside class="hypothesis">
+          <h3>核心判断 · 验证正先于生成成为瓶颈</h3>
+          <ul class="points">
+            <li><strong>适用条件。</strong>最新一代 Agent 已能稳定生成可运行的实现（构建成功率接近 100%）。</li>
+            <li><strong>可检验预测。</strong>固定总推理预算，将部分预算从继续生成转移到独立验收与反馈修复，外部验收通过率应当更高。</li>
+            <li><strong>初步支持。</strong>SWE-bench Verified 子集上，独立审阅比默认流程提高 <strong>3.9–6.6 个百分点</strong>，总 API 成本（含审阅与修复）为基线的 <strong>1.00–1.04 倍</strong>（<time datetime="2026-10-25">2026-10-25</time>）。真实仓库、相同起始补丁、严格等总预算的对照仍缺，见文献更新 ①。<a class="cite" href="#ref-21" aria-label="参考文献 21">[21]</a></li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ RQ1 / 归因 ============ -->
+    <section class="chapter" id="rq1-attribution" aria-labelledby="rq1-attribution-title">
+      <p class="side-label">RQ1 · 解决路径</p>
+      <div>
+        <h2 id="rq1-attribution-title">归因：基模问题还是 Harness 问题？</h2>
+        <p class="lede">两条路径各有直接对照证据，且影响幅度随任务开放程度变化，不能一概而论。</p>
+        <div class="explanations">
+          <div class="explanation">
+            <h3>Harness 移动边界的证据</h3>
+            <ul class="compact-points">
+              <li>固定 DeepSeek-V4.1-Flash、解码与任务集，切换八套 harness 配置后 DeepSWE v1.1 为 <strong>65.5%–74.2%</strong>（2026-09-17）。<a class="cite" href="#ref-11">[11]</a></li>
+              <li>Gemini 4 Neon 在需要自行找问题的 SWE-sweep 上，两套 harness 得分 <strong>39.0% vs 12.8%</strong>，相差 26.2 个百分点（2026-11-18）。<a class="cite" href="#ref-12">[12]</a></li>
+              <li>反例：固定 issue 修复任务上，Qwen3-Coder-Next 三套 scaffold 仅差 <strong>0.7 个百分点</strong>（2026-02-28）；METR 在其长程任务集上也未测到 harness 显著差异（2026-02-13）。<a class="cite" href="#ref-13">[13]</a><a class="cite" href="#ref-14">[14]</a></li>
+            </ul>
+          </div>
+          <div class="explanation">
+            <h3>基模移动边界的证据</h3>
+            <ul class="compact-points">
+              <li>同一 Claude Code harness 与评审协议下，LongCat-2.0 → 2.5 的 SWE Atlas Test Writing 从 <strong>28.0 升至 47.8</strong>（2026-11-02）。换模型即改变验证盲区的大小。<a class="cite" href="#ref-15">[15]</a></li>
+              <li>Anthropic 工程观察：换用 Opus 4.6 后，部分原先依赖独立 QA 的任务可由生成者自行处理（2026-03-24）。<a class="cite" href="#ref-16">[16]</a></li>
+            </ul>
+          </div>
+        </div>
+        <dl class="conditions">
+          <div class="condition"><dt>任务开放度</dt><dd>任务越开放（自主定位问题、长程多步），harness 的影响越大；在封闭的 issue 修复上，跨 scaffold 差距可收敛到 1 个百分点以内。</dd></div>
+          <div class="condition"><dt>基模迭代</dt><dd>基模升级同时移动生成与验证两条边界，因此 2025 年及更早的瓶颈证据可能已失效，本笔记仅保留 2026 年内仍可复现的失效模式。</dd></div>
+          <div class="condition"><dt>第三变量</dt><dd>验收标准独立于基模与 harness，决定哪些错误能被识别。SWE-Bench Pro 审计表明验收本身也会测错需求。<a class="cite" href="#ref-3">[3]</a></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ 过渡方案 ============ -->
+    <section class="chapter" id="transition" aria-labelledby="transition-title">
+      <p class="side-label">过渡方案</p>
+      <div>
+        <h2 id="transition-title">不等基模迭代：现在落地的独立验收流程</h2>
+        <p class="lede">可合并口径下最强模型仍不足 50%，验证瓶颈可能随基模迭代缓解，但不应等待。<strong>跨代复用的是验收标准、缺陷用例和评测方法；随模型升级重新标定的是哪些任务需要复核、用哪个 reviewer、给多少预算。</strong>当前版本先针对一种失效模式落地：实现通过了自写测试，却漏掉了明确的边界条件。<a class="cite" href="#ref-5" aria-label="参考文献 5">[5]</a><a class="cite" href="#ref-7" aria-label="参考文献 7">[7]</a></p>
+        <figure class="protocol" aria-label="过渡方案的最小流程">
+          <ol class="protocol-list">
+            <li><h3>一 · 先固定验收依据</h3><p>把原始需求拆成可独立判定的条款，每条尽量保存一个可执行用例或参考输出。需求本身含糊的地方，记录需要澄清的约束。</p></li>
+            <li><h3>二 · 按需触发独立复核</h3><p>默认由单 Agent 实现并运行固定检查。跨模块行为、边界条件或首轮检查无法覆盖的关键需求，让同模型在新上下文中先读规范、写出预期，再看补丁并执行检查，回传可复现输入、观察结果、违反的条款。</p></li>
+            <li><h3>三 · 失败沉淀为回归用例</h3><p>每次人工确认的漏检或误报，保存需求、起始补丁、复现步骤和正确判定。同一批用例用于衡量独立复核的缺陷检出、对正确实现的误拒，以及实际花费。</p></li>
+          </ol>
+          <figcaption>最小可落地流程 · 选择性验证的成本收益已有实证，触发条件需在自有任务上标定（<time datetime="2026-10-21">2026-10-21</time>）<a class="cite" href="#ref-27" aria-label="参考文献 27">[27]</a></figcaption>
+        </figure>
+        <aside class="hypothesis">
+          <h3>模型升级时 · 跑一个四组对照</h3>
+          <ul class="points">
+            <li><strong>设置。</strong>同一批任务、同一起始补丁、同一外部验收与总预算，比较：旧模型自查 / 旧模型＋独立复核 / 新模型自查 / 新模型＋独立复核。</li>
+            <li><strong>决策规则。</strong>新模型自查在某类任务上达到质量门槛，就降低该类任务的复核频率；某类漏检持续存在，就保留对应检查；新出现的失败加入下一轮回归集。</li>
+          </ul>
+        </aside>
+        <dl class="conditions">
+          <div class="condition"><dt>验收标准</dt><dd>可执行的条款与用例独立于任何模型版本，直接迁移给下一代。</dd></div>
+          <div class="condition"><dt>失败样本</dt><dd>可复现的漏检与误报用例构成回归集，用于检验新一代是否仍犯同类错误。</dd></div>
+          <div class="condition"><dt>升级基线</dt><dd>四组对照给出可比较的代际数据，把复核预算从已解决的问题移到新模型仍易漏掉的需求上。</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ RQ2 / Assumption ============ -->
+    <section class="chapter" id="rq2-assumption" aria-labelledby="rq2-title">
+      <p class="side-label">RQ2 · 多 Agent</p>
+      <div>
+        <h2 id="rq2-title">Multi Agent 相比 Single Agent 的增益从哪里来？</h2>
+        <p class="lede">隐含假设：交叉验证能发现单 Agent 自反思与迭代发现不了的缺陷。证据部分支持这一假设，但对「增益来自另一个模型」的直觉给出了修正。</p>
+        <aside class="hypothesis">
+          <h3>Assumption 检验 · 交叉验证的增益来自独立上下文，而非模型多样性</h3>
+          <ul class="points">
+            <li><strong>支持：自审不如他审。</strong>Greptile 在各 500 个 Claude Code 与 Codex 历史 PR 上交叉复审，高严重性参考问题召回率：Claude 写的 PR 中 GPT-5.5 为 <strong>60.0%</strong>、Opus 4.7 为 <strong>53.7%</strong>；Codex 写的 PR 中 Opus 为 <strong>62.0%</strong>、GPT 为 <strong>50.5%</strong>（<time datetime="2026-07-21">2026-07-21</time>）。<a class="cite" href="#ref-17" aria-label="参考文献 17">[17]</a></li>
+            <li><strong>修正：同模型新上下文即有收益，换模型反而更差。</strong>三个小型服务、46 个植入缺陷：同模型独立验收相比开发者自测，11 个缺陷检出率提高、1 个下降、34 个持平；换模型组在同一对照中检出更少（<time datetime="2026-10-16">2026-10-16</time>）。<a class="cite" href="#ref-18" aria-label="参考文献 18">[18]</a></li>
+            <li><strong>机制线索：收益依赖独立证据获取。</strong>Qwen 发现评审 Agent 容易以静态阅读代替运行；强制其执行测试并收紧评审边界后，候选选择准确率从 <strong>57.9% 升至 67.4%</strong>（<time datetime="2026-06-24">2026-06-24</time>）。<a class="cite" href="#ref-19" aria-label="参考文献 19">[19]</a></li>
+            <li><strong>判断。</strong>增益来自「独立上下文 + 独立证据获取」（新会话、需求原文、可执行验证），而非模型多样性。即使换模型，双方仍可能继承同一份不完整的需求解释。</li>
+          </ul>
+        </aside>
+        <figure class="protocol" aria-label="独立验收的证据获取顺序">
+          <ol class="protocol-list">
+            <li><h3>规范优先</h3><p>独立推导预期行为和边界用例，标记待澄清约束。</p></li>
+            <li><h3>实现检查与执行</h3><p>以只读权限检查实现，运行测试并补查边界行为。</p></li>
+            <li><h3>反例反馈</h3><p>回传可复现输入、观测结果及违反的需求。</p></li>
+          </ol>
+          <figcaption>独立验收的证据获取顺序 · 根据 Sion 与 April 的方法整理<a class="cite" href="#ref-18" aria-label="参考文献 18">[18]</a></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============ RQ2 / 瓶颈与证据 ============ -->
+    <section class="chapter" id="rq2-bottleneck" aria-labelledby="rq2-bottleneck-title">
+      <p class="side-label">RQ2 · 瓶颈与证据</p>
+      <div>
+        <h2 id="rq2-bottleneck-title">并行收益可测，等预算下结果随任务而变</h2>
+        <ul class="points">
+          <li><strong>并行换时延。</strong>166 个 ProgramBench 任务、同模型、同为 4 小时预算：Fable 5.2 的固定五 Agent 团队达到 60% 平均隐藏测试通过分所需的估计耗时约为单 Agent 的一半，token 消耗更高（<time datetime="2026-11-09">2026-11-09</time>）。<a class="cite" href="#ref-7" aria-label="参考文献 7">[7]</a></li>
+          <li><strong>等时长对照。</strong>DeepSeek-V4.1-Flash：ProgramBench 172 题子集上 8 小时为 <strong>30.04% vs 20.39%</strong>（团队 vs 单 Agent，Almost@1）。作者称结果初步；等时间上限允许团队消耗更多推理资源，比较也捆绑了角色、通信与专门训练（<time datetime="2026-09-17">2026-09-17</time>）。<a class="cite" href="#ref-11" aria-label="参考文献 11">[11]</a></li>
+          <li><strong>等 token 上限对照（负向）。</strong>匹配系统级 token 上限后，SWE-bench Verified 的 20 题子集上，四种多 Agent 架构的平均成绩均低于单 Agent（<time datetime="2026-07-24">2026-07-24</time>）。<a class="cite" href="#ref-25" aria-label="参考文献 25">[25]</a></li>
+          <li><strong>等支出对照（正向）。</strong>同模型、同为 $300 实际支出的 GPU kernel 优化任务上，演化团队达到 <strong>2.13×</strong> 加速，单 Agent 为 <strong>1.65×</strong>（<time datetime="2026-10-27">2026-10-27</time>）。两组等预算结果方向相反，提示收益依赖任务结构，报告也应区分预算上限与实际支出。<a class="cite" href="#ref-26" aria-label="参考文献 26">[26]</a></li>
+          <li><strong>收益不稳定。</strong>GitHub HydraFusion 多模型编排对比单用 Opus 5：Terminal-Bench 2.1 <strong>+4.9</strong> 个百分点，DeepSWE <strong>−1.5</strong>，CheckpointBench <strong>−0.1</strong>（<time datetime="2026-09-04">2026-09-04</time>）。<a class="cite" href="#ref-20" aria-label="参考文献 20">[20]</a></li>
+          <li><strong>时效风险。</strong>Anthropic 工程观察：升级到 Opus 4.6 后，较容易任务上 evaluator 可能只增加开销，临界任务仍受益——多 Agent 收益会被基模迭代部分吞掉（<time datetime="2026-03-24">2026-03-24</time>）。<a class="cite" href="#ref-16" aria-label="参考文献 16">[16]</a></li>
+        </ul>
+        <dl class="conditions">
+          <div class="condition"><dt>减少漏检</dt><dd>适用于审阅者能从原始需求独立推导预期，或能运行额外的验收检查；关键变量是上下文隔离与证据获取，而非模型数量。</dd></div>
+          <div class="condition"><dt>缩短工期</dt><dd>适用于子任务可并行且结果可独立验收。等预算对照在通用 issue 修复上偏向单 Agent，在可定量反馈、可拆分的优化任务上偏向团队；比较时需同时报告耗时、质量、预算上限与实际支出。<a class="cite" href="#ref-25">[25]</a><a class="cite" href="#ref-26">[26]</a></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ 四项待测问题的文献更新 ============ -->
+    <section class="open-question" id="gaps" aria-labelledby="gaps-title">
+      <p class="side-label">文献更新</p>
+      <div>
+        <h2 id="gaps-title">四项待测问题：已有证据与剩余缺口</h2>
+        <dl class="conditions">
+          <div class="condition"><dt>① 等预算比较三种验证方式</dt><dd>Harness 验证实验：SWE-bench Verified 子集上，独立审阅比默认流程提高 <strong>3.9–6.6 个百分点</strong>，总 API 成本为基线的 <strong>1.00–1.04 倍</strong>，含审阅和修复（<time datetime="2026-10-25">2026-10-25</time>）。另有预印本比较原会话自审、同模型新会话和跨模型审阅，但只匹配了部分对照的调用次数（<time datetime="2026-10-06">2026-10-06</time>）。<strong>仍缺</strong>：真实仓库、相同起始补丁、严格等总预算的三组对照。<a class="cite" href="#ref-21">[21]</a><a class="cite" href="#ref-22">[22]</a></dd></div>
+          <div class="condition"><dt>② 模型迭代是否减少漏检</dt><dd>CRBugBench 固定 Copilot CLI 和审阅提示，Opus 4.6 到 Opus 5 的已知 PR 缺陷 Top-5 召回率从 <strong>47.7% 升到 71.9%</strong>（<time datetime="2026-10-09">2026-10-09</time>）。这测的是外部审阅，各版本的实际推理量也不同。<strong>仍缺</strong>：同模型审阅自己补丁的漏检率是否随代际下降，需单独测量。<a class="cite" href="#ref-23">[23]</a></dd></div>
+          <div class="condition"><dt>③ 单 Agent 自反思的上限</dt><dd>SatisFix 给出近期基线：GPT-5.6-Luna 在 113 个 DeepSWE 任务上做 Self-Refine，Pass@1 从 <strong>44.25% 升到 46.24%</strong>，每题平均成本从 <strong>$0.644 升到 $2.022</strong>（<time datetime="2026-11-12">2026-11-12</time>）。<strong>仍缺</strong>：增益和成本需按模型、任务与自查方式分别报告。<a class="cite" href="#ref-24">[24]</a></dd></div>
+          <div class="condition"><dt>④ 等算力下单 Agent 与团队</dt><dd>已有直接对照，方向随任务而变：匹配系统级 token 上限后，SWE-bench Verified 的 20 题子集上四种多 Agent 架构平均低于单 Agent（<time datetime="2026-07-24">2026-07-24</time>）；同为 <strong>$300</strong> 支出的 GPU kernel 优化上，团队 <strong>2.13×</strong>、单 Agent <strong>1.65×</strong>（<time datetime="2026-10-27">2026-10-27</time>）。<strong>仍需注意</strong>：报告应区分预算上限和实际支出。<a class="cite" href="#ref-25">[25]</a><a class="cite" href="#ref-26">[26]</a></dd></div>
+          <div class="condition"><dt>⑤ Coding 底座论的对照</dt><dd>同模型、同任务、终态评分的直接对照已有两组，方向相反：OpenComputer（Sonnet 4.6，343 题）GUI <strong>73.0%</strong> vs CLI <strong>67.2%</strong>，CLI 快约 4 倍（<time datetime="2026-05-19">2026-05-19</time>）；GUI vs. CLI（GPT-5.4，440 题）GUI <strong>59.1%</strong> vs CLI <strong>24.3%</strong>，文档 / 表格 / 幻灯片的 CLI 通过率仅 5.1% / 0% / 9.4%，主因是 CLI skills 仅覆盖 37.6% 的评分检查点，补齐后 GPT-5.5 CLI 从 <strong>48.2% 升至 69.3%</strong>（<time datetime="2026-06-22">2026-06-22</time>）。混合接口的成本参照：OSWorld 2.0 上扩展混合接口平均快 10.17 分钟，每题约 $10，完整通过率 32.4% 对 31.5%（<time datetime="2026-10-30">2026-10-30</time>）。<strong>仍缺</strong>：厂商 system card 级别同时披露同模型、同批办公任务的纯 CLI / GUI 成功率、总成本与独立复核时间；补齐接口在留出任务上的迁移。<a class="cite" href="#ref-37">[37]</a><a class="cite" href="#ref-38">[38]</a><a class="cite" href="#ref-39">[39]</a><a class="cite" href="#ref-40">[40]</a></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ RSI · 自提升验证 ============ -->
+    <section class="chapter" id="rsi" aria-labelledby="rsi-title">
+      <p class="side-label">RSI · 自提升验证</p>
+      <div>
+        <h2 id="rsi-title">用 RSI 优先提升验证流程，把可复用资产留在模型外</h2>
+        <p class="lede">当代码和测试来自同一种需求理解时，值得优化的是：何时启动独立复核、复核者能取得什么新证据、发现分歧后怎么复现。闭源前沿模型今天就能参与这一层的迭代；开放权重额外提供一个选项——把反复出现、可独立评分的失败模式做成训练信号。</p>
+        <ul class="points">
+          <li><strong>第一优先：演化验证策略。</strong>HarnessPro 冻结 GPT-5.5，在 100 道留出的 SWE-bench Pro 题上，演化 harness 后通过率由 <strong>59.0% 升至 79.0%</strong>，每题执行成本由 <strong>$1.88 降至 $1.26</strong>；Lite 配置中移除测试合成器后，通过率由 72.3% 降至 64.0%（演化开销另计，<time datetime="2026-10-19">2026-10-19</time>）。同一闭源模型仅靠改变验证工具即可获得实质收益。<a class="cite" href="#ref-28" aria-label="参考文献 28">[28]</a></li>
+          <li><strong>第二优先：训练可单独验收的验证器。</strong>固定候选补丁池，开放权重 Qwen 验证器从 Base、SFT 到完整 RL，对错误补丁的接受率依次为 <strong>30.0%、27.0%、12.6%</strong>；固定生成器、仅更换验证器后，解题率由 <strong>31.9% 升至 36.5%</strong>（<time datetime="2026-10-02">2026-10-02</time>）。模型本身的验证能力也能通过训练提高。<a class="cite" href="#ref-29" aria-label="参考文献 29">[29]</a></li>
+          <li><strong>跨代复用的载体：验收标准、失败案例与实验记录。</strong>Self-Improvement Memory 保留历次 harness 改动的理由、适用条件和结果：10 组配对 coding 实验中，带记录继续优化平均比只继承 harness 高 <strong>2.36 分</strong>；跨 Gemini 代际时继承方案三代中两胜一负——旧策略必须重新验收（<time datetime="2026-11-13">2026-11-13</time>）。<a class="cite" href="#ref-30" aria-label="参考文献 30">[30]</a></li>
+        </ul>
+        <aside class="hypothesis">
+          <h3>换代协议升级 · 从四组对照到 RSI 闭环</h3>
+          <ul class="points">
+            <li><strong>架构。</strong>执行 Agent 交付补丁；独立验证器从原始需求、仓库既有行为、调用方契约中找一条能区分两种解释的证据；优化器只改验证策略，留出验收集独立维护。</li>
+            <li><strong>换基模时。</strong>在过渡方案四组对照的基础上扩展为：旧 / 新模型 × 默认 / 进化 harness，再单独测「新模型继承旧策略」与「从头优化」的差异。</li>
+            <li><strong>主指标。</strong>错误补丁放行率、正确补丁误拒率、每个正确交付的总成本。某类任务达到质量门槛即减少复核，把预算转给仍会漏检的任务。</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ 选型 · 执行者与验证者 ============ -->
+    <section class="chapter" id="model-choice" aria-labelledby="model-choice-title">
+      <p class="side-label">选型 · 执行者与验证者</p>
+      <div>
+        <h2 id="model-choice-title">闭源前沿、开放权重与小模型各自的位置</h2>
+        <ul class="points">
+          <li><strong>闭源与开放的差距随任务复杂度变化。</strong>Terminal-Bench 2.1 上，Qwen3.5-27B 经 Agentic RL 由 <strong>41.6% 升至 50.6%</strong>，同任务榜单 GPT-5.5 为 84.3%、Opus 4.7 为 83.1%（闭源分数来自榜单，预算与执行配置未完全匹配，<time datetime="2026-09-28">2026-09-28</time>）。DeepSWE v1.1 上开放模型已进入同一区间：DeepSeek-V4.1-Flash <strong>74.2%</strong>、Opus 5 74.0%、GPT-5.6 Sol 73.0%（训练含 SFT、RL 与蒸馏，无法单独归因 RL，<time datetime="2026-09-17">2026-09-17</time>）。换到 100 道专家编写的跨文件工程任务，差距重新拉大：Opus 5.5 <strong>67.3%</strong>、GPT-6 Astra 63.7%、DeepSeek-V4.1-Flash <strong>32.5%</strong>（<time datetime="2026-11-09">2026-11-09</time>）。<a class="cite" href="#ref-31">[31]</a><a class="cite" href="#ref-11">[11]</a><a class="cite" href="#ref-32">[32]</a></li>
+          <li><strong>RSI 评测应保留闭源前沿组，分别报起点、进化增益和终点。</strong>只测开放权重足以回答训练方法能提升多少，无法估计当前可部署系统的能力边界。两条已有赛道：Flex-RSI 在固定权重下测 11 个闭源、7 个开放权重模型的 harness 改进（任务偏视觉与机器人，<time datetime="2026-11-06">2026-11-06</time>）；VibeTraining-Bench 让 GPT-6 Astra 担任研究 Agent，在可训练的 Qwen3.5-9B 上改 harness 并做 SFT，隐藏 SWE-bench Verified 由 <strong>32.9% 升至 53.7%</strong>（<time datetime="2026-10-19">2026-10-19</time>）。前者测「改进自己的运行系统」，后者测「改进另一个可训练系统」。<a class="cite" href="#ref-33">[33]</a><a class="cite" href="#ref-34">[34]</a></li>
+        </ul>
+        <dl class="conditions">
+          <div class="condition"><dt>小模型 · 局部验证</dt><dd>让小模型判断某步工具动作、输出结构或状态变化是否符合预期，长程规划与需求分歧留给主模型。SWE-Verifier 用 Qwen3.5-4B 在不到 <strong>4%</strong> 的步骤上触发验证，MiniMax M2.7 解决率由 <strong>75.47% 升至 77.20%</strong>，总成本 1.09 倍（2026-10-21）。这比让 1B 级模型接管整仓开发更有直接证据。<a class="cite" href="#ref-27">[27]</a></dd></div>
+          <div class="condition"><dt>小模型 · 端侧窄任务</dt><dd>工具集合固定、状态可读、成功条件明确的场景（日历、消息草稿、设备设置）。BotPsy 0.8B 经 SFT、蒸馏与 RL 后，BFCL 多轮工具调用由 <strong>7.5 升至 46.1</strong>（厂商评测，同表 Qwen3.5-2B 为 23.8，2026-11-11）；真机时延参照：MiniCPM5-1B 在 iPhone 17 Pro 上 1,024+256 token 约 <strong>2.9 秒</strong>（2026-08-24）。<a class="cite" href="#ref-35">[35]</a><a class="cite" href="#ref-36">[36]</a></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ References ============ -->
+    <section class="references" id="references" aria-labelledby="references-title">
+      <h2 id="references-title" lang="en">Reference List</h2>
+      <ol class="reference-list">
+        <li id="ref-1" tabindex="-1"><span class="ref-num">[1]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2602.15763v1">GLM-5: from Vibe Coding to Agentic Engineering</a><p class="ref-meta"><time datetime="2026-02-17">2026-02-17</time> · Z.ai 技术报告 · §6.2，表 8</p></div></li>
+        <li id="ref-2" tabindex="-1"><span class="ref-num">[2]</span><div><a class="ref-title" lang="en" href="https://metr.org/notes/2026-03-10-many-swe-bench-passing-prs-would-not-be-merged-into-main/">Many SWE-bench-passing PRs Would Not Be Merged into Main</a><p class="ref-meta"><time datetime="2026-03-10">2026-03-10</time> · METR · 296 个 Agent PR，4 名维护者</p></div></li>
+        <li id="ref-3" tabindex="-1"><span class="ref-num">[3]</span><div><a class="ref-title" lang="en" href="https://openai.com/index/separating-signal-from-noise-coding-evaluations/">Separating Signal from Noise in Coding Evaluations</a><p class="ref-meta"><time datetime="2026-07-08">2026-07-08</time> · OpenAI · SWE-Bench Pro 731 题审计</p></div></li>
+        <li id="ref-4" tabindex="-1"><span class="ref-num">[4]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.24206v1">SWE-bench Pro V2 Technical Report</a><p class="ref-meta"><time datetime="2026-10-16">2026-10-16</time> · Scale · §2–3，修订或移除 480 题</p></div></li>
+        <li id="ref-5" tabindex="-1"><span class="ref-num">[5]</span><div><a class="ref-title" lang="en" href="https://cognition.com/blog/frontier-code-2.0">FrontierCode 2.0: Would a Maintainer Merge This PR?</a><p class="ref-meta"><time datetime="2026-10-27">2026-10-27</time> · Cognition · Results 与 Methodology</p></div></li>
+        <li id="ref-6" tabindex="-1"><span class="ref-num">[6]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2611.07166v1">Multi-step SWE: Can Coding Agents Keep Building on Their Own Code Over Long Horizons?</a><p class="ref-meta"><time datetime="2026-11-04">2026-11-04</time> · Klavis AI 评测报告 · §4.1、§4.3</p></div></li>
+        <li id="ref-7" tabindex="-1"><span class="ref-num">[7]</span><div><a class="ref-title" lang="en" href="https://assets.claude.com/27d60918d218125e7504bc7354c4b4626ec56b11.pdf#page=208">Claude Fable 5.2 &amp; Claude Mythos 5.2 System Card</a><p class="ref-meta"><time datetime="2026-11-09">2026-11-09</time> · Anthropic 系统卡 · §8.2–8.5、§8.12.1、§8.12.4–5</p></div></li>
+        <li id="ref-8" tabindex="-1"><span class="ref-num">[8]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2605.08366v1">SWE Atlas: Benchmarking Agents on Repository-level Test Writing</a><p class="ref-meta"><time datetime="2026-05-07">2026-05-07</time> · Scale Labs · §2.1.2、§4.3，图 2 与 4</p></div></li>
+        <li id="ref-9" tabindex="-1"><span class="ref-num">[9]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2607.05139v1">On the risk of coding before testing: An empirical study on LLM-based test generation workflow</a><p class="ref-meta"><time datetime="2026-07-06">2026-07-06</time> · Konstantinou 等 · arXiv 预印本 · RQ3</p></div></li>
+        <li id="ref-10" tabindex="-1"><span class="ref-num">[10]</span><div><a class="ref-title" lang="en" href="https://deploymentsafety.openai.com/gpt-6-2-astra-sol/blocker-deception">GPT-6.2 Astra: Blocker Deception Evaluation</a><p class="ref-meta"><time datetime="2026-11-17">2026-11-17</time> · OpenAI deployment safety · 人为设障编码任务</p></div></li>
+        <li id="ref-11" tabindex="-1"><span class="ref-num">[11]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2609.19969v1#S5.SS3.SSS4">DeepSeek-V4.1-Flash: Pushing the Limits of KV Cache Compression</a><p class="ref-meta"><time datetime="2026-09-17">2026-09-17</time> · DeepSeek 技术报告 · §5.3.4 表 4、§5.3.5 图 10</p></div></li>
+        <li id="ref-12" tabindex="-1"><span class="ref-num">[12]</span><div><a class="ref-title" lang="en" href="https://deepmind.google/models/model-cards/gemini-4-neon/">Gemini 4 Neon Model Card: Agentic Coding</a><p class="ref-meta"><time datetime="2026-11-18">2026-11-18</time> · Google DeepMind · SWE-sweep 子任务加权分</p></div></li>
+        <li id="ref-13" tabindex="-1"><span class="ref-num">[13]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2603.00729v1">Qwen3-Coder-Next Technical Report</a><p class="ref-meta"><time datetime="2026-02-28">2026-02-28</time> · Qwen · §2、§5.1，表 3</p></div></li>
+        <li id="ref-14" tabindex="-1"><span class="ref-num">[14]</span><div><a class="ref-title" lang="en" href="https://metr.org/notes/2026-02-13-measuring-time-horizon-using-claude-code-and-codex/">Measuring Time Horizon Using Claude Code and Codex</a><p class="ref-meta"><time datetime="2026-02-13">2026-02-13</time> · METR · Methods 与 Results</p></div></li>
+        <li id="ref-15" tabindex="-1"><span class="ref-num">[15]</span><div><a class="ref-title" lang="en" href="https://huggingface.co/meituan-longcat/LongCat-2.5#evaluation-results">LongCat-2.5 Model Card: Code Agent Evaluation</a><p class="ref-meta"><time datetime="2026-11-02">2026-11-02</time> · 美团 · Code Agent 表与脚注 3</p></div></li>
+        <li id="ref-16" tabindex="-1"><span class="ref-num">[16]</span><div><a class="ref-title" lang="en" href="https://www.anthropic.com/research/harness-design-long-running-apps">Harness Design for Long-running Apps</a><p class="ref-meta"><time datetime="2026-03-24">2026-03-24</time> · Anthropic 工程报告 · planner / generator / evaluator 案例</p></div></li>
+        <li id="ref-17" tabindex="-1"><span class="ref-num">[17]</span><div><a class="ref-title" lang="en" href="https://www.greptile.com/blog/model-inversion">Models Are Worse at Reviewing Their Own Code</a><p class="ref-meta"><time datetime="2026-07-21">2026-07-21</time> · Greptile · 各 500 个历史 PR 交叉复审</p></div></li>
+        <li id="ref-18" tabindex="-1"><span class="ref-num">[18]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.28667v1">Who Verifies the Builder? Toward Independent Assurance for Agent-Produced Software</a><p class="ref-meta"><time datetime="2026-10-16">2026-10-16</time> · Sion 与 April · arXiv 预印本 · §V–VIII</p></div></li>
+        <li id="ref-19" tabindex="-1"><span class="ref-num">[19]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2606.26300v1">The Verification Horizon</a><p class="ref-meta"><time datetime="2026-06-24">2026-06-24</time> · Qwen · §5.2–5.3，表 6</p></div></li>
+        <li id="ref-20" tabindex="-1"><span class="ref-num">[20]</span><div><a class="ref-title" lang="en" href="https://github.blog/ai-and-ml/project-hydrafusion-frontier-quality-via-multi-model-orchestration/">Project HydraFusion: Frontier Quality via Multi-model Orchestration</a><p class="ref-meta"><time datetime="2026-09-04">2026-09-04</time> · GitHub · 单模型 / 级联 / 跨家族批评路由</p></div></li>
+        <li id="ref-21" tabindex="-1"><span class="ref-num">[21]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.34577v1">Rethinking Verification in Agent Harnesses</a><p class="ref-meta"><time datetime="2026-10-25">2026-10-25</time> · arXiv 预印本 · 单 Agent 自查 vs 独立 reviewer，含成本核算</p></div></li>
+        <li id="ref-22" tabindex="-1"><span class="ref-num">[22]</span><div><a class="ref-title" href="https://arxiv.org/html/2610.01471v2">原会话自审、同模型新会话与跨模型审阅的对照实验</a><p class="ref-meta"><time datetime="2026-10-06">2026-10-06</time> · arXiv 预印本（v2） · 仅部分对照匹配了调用次数</p></div></li>
+        <li id="ref-23" tabindex="-1"><span class="ref-num">[23]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.13668v1">CRBugBench</a><p class="ref-meta"><time datetime="2026-10-09">2026-10-09</time> · arXiv 预印本 · 表 1，固定 Copilot CLI 与审阅提示的跨代召回对照</p></div></li>
+        <li id="ref-24" tabindex="-1"><span class="ref-num">[24]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2611.16289v1#S4.SS2">SatisFix</a><p class="ref-meta"><time datetime="2026-11-12">2026-11-12</time> · arXiv 预印本 · §4.2 表 2，Self-Refine 受控基线</p></div></li>
+        <li id="ref-25" tabindex="-1"><span class="ref-num">[25]</span><div><a class="ref-title" href="https://doi.org/10.1038/s42256-026-01268-y">等 token 上限下多 Agent 架构与单 Agent 的对照</a><p class="ref-meta"><time datetime="2026-07-24">2026-07-24</time> · Nature Machine Intelligence · SWE-bench Verified 20 题子集，四种架构</p></div></li>
+        <li id="ref-26" tabindex="-1"><span class="ref-num">[26]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.36848v1#A4">Evolving Agent Teams</a><p class="ref-meta"><time datetime="2026-10-27">2026-10-27</time> · arXiv 预印本 · 附录 D，等支出 GPU kernel 优化案例</p></div></li>
+        <li id="ref-27" tabindex="-1"><span class="ref-num">[27]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.30284v1">SWE-Verifier</a><p class="ref-meta"><time datetime="2026-10-21">2026-10-21</time> · arXiv 预印本 · 选择性验证的成本收益实证，Qwen3.5-4B 局部验证</p></div></li>
+        <li id="ref-28" tabindex="-1"><span class="ref-num">[28]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.26770v1#S5">HarnessPro</a><p class="ref-meta"><time datetime="2026-10-19">2026-10-19</time> · arXiv 预印本 · §5，冻结 GPT-5.5 的 harness 演化与消融</p></div></li>
+        <li id="ref-29" tabindex="-1"><span class="ref-num">[29]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.03984v1#S3.SS4">Teaching Agents to Code Reliably</a><p class="ref-meta"><time datetime="2026-10-02">2026-10-02</time> · arXiv 预印本 · §3.4，验证器 Base / SFT / RL 训练梯度</p></div></li>
+        <li id="ref-30" tabindex="-1"><span class="ref-num">[30]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2611.18856v1">Self-Improvement Memory</a><p class="ref-meta"><time datetime="2026-11-13">2026-11-13</time> · arXiv 预印本 · 10 组配对实验与跨 Gemini 代际迁移</p></div></li>
+        <li id="ref-31" tabindex="-1"><span class="ref-num">[31]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2609.35532v1#S4">ARISE</a><p class="ref-meta"><time datetime="2026-09-28">2026-09-28</time> · arXiv 预印本 · §4，Qwen3.5-27B Agentic RL 与榜单参照</p></div></li>
+        <li id="ref-32" tabindex="-1"><span class="ref-num">[32]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2611.13246v1#S4.SS2">ExpertCrowd-SWE</a><p class="ref-meta"><time datetime="2026-11-09">2026-11-09</time> · arXiv 预印本 · §4.2，100 道专家编写跨文件工程任务</p></div></li>
+        <li id="ref-33" tabindex="-1"><span class="ref-num">[33]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/abs/2611.08946">Flex-RSI</a><p class="ref-meta"><time datetime="2026-11-06">2026-11-06</time> · arXiv 预印本 · 固定权重下 11 闭源 + 7 开放权重的 harness 改进</p></div></li>
+        <li id="ref-34" tabindex="-1"><span class="ref-num">[34]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.26342v1#S4">VibeTraining-Bench</a><p class="ref-meta"><time datetime="2026-10-19">2026-10-19</time> · arXiv 预印本 · §4，GPT-6 Astra 改进可训练的 Qwen3.5-9B</p></div></li>
+        <li id="ref-35" tabindex="-1"><span class="ref-num">[35]</span><div><a class="ref-title" lang="en" href="https://huggingface.co/qvac/BotPsy-0.8B">BotPsy-0.8B Model Card</a><p class="ref-meta"><time datetime="2026-11-11">2026-11-11</time> · 厂商模型卡 · BFCL 多轮工具调用，厂商自评</p></div></li>
+        <li id="ref-36" tabindex="-1"><span class="ref-num">[36]</span><div><a class="ref-title" lang="en" href="https://artificialanalysis.ai/articles/mobile-phone-intelligence-inference">Mobile Phone Intelligence Inference</a><p class="ref-meta"><time datetime="2026-08-24">2026-08-24</time> · Artificial Analysis · MiniCPM5-1B iPhone 17 Pro 真机时延</p></div></li>
+        <li id="ref-37" tabindex="-1"><span class="ref-num">[37]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2605.19769v1#S5.SS2">OpenComputer</a><p class="ref-meta"><time datetime="2026-05-19">2026-05-19</time> · arXiv 预印本 · §5.2，Sonnet 4.6 同任务 GUI / CLI 对照（343 题）</p></div></li>
+        <li id="ref-38" tabindex="-1"><span class="ref-num">[38]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2606.24551v1">GUI vs. CLI</a><p class="ref-meta"><time datetime="2026-06-22">2026-06-22</time> · arXiv 预印本 · GPT-5.4 办公任务 440 题，含接口覆盖消融</p></div></li>
+        <li id="ref-39" tabindex="-1"><span class="ref-num">[39]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2608.07873v1#S8">WTM-Bench</a><p class="ref-meta"><time datetime="2026-08">2026-08</time> · arXiv 预印本 · §8，Excel 任务 Python / Office.js / VBA 工具对照</p></div></li>
+        <li id="ref-40" tabindex="-1"><span class="ref-num">[40]</span><div><a class="ref-title" lang="en" href="https://arxiv.org/html/2610.41432v1">Hybrid Computer Use</a><p class="ref-meta"><time datetime="2026-10-30">2026-10-30</time> · Microsoft · OSWorld 2.0 混合接口的耗时与成本</p></div></li>
+        <li id="ref-41" tabindex="-1"><span class="ref-num">[41]</span><div><a class="ref-title" lang="en" href="https://www-cdn.anthropic.com/0b4915911bb0d19eca5b5ee635c80fef830a37ea.pdf">Claude Opus 4.8 System Card</a><p class="ref-meta"><time datetime="2026-05">2026-05</time> · Anthropic · SWE-bench Verified 与 OSWorld-Verified 代际增量</p></div></li>
+        <li id="ref-42" tabindex="-1"><span class="ref-num">[42]</span><div><a class="ref-title" lang="en" href="https://www.anthropic.com/claude-fable-and-mythos-5-2">Claude Fable &amp; Mythos 5.2 发布评测</a><p class="ref-meta"><time datetime="2026-11">2026-11</time> · Anthropic · FrontierSWE v2 / OSWorld 2.1 / AutomationBench 代际增量</p></div></li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p>研究笔记 · Coding Agent 能力边界与多 Agent 验证 · 证据截至 2026-11-19</p>
+    <a href="#top">返回页首</a>
+  </div>
+</footer>
+<script>
+  const masthead = document.querySelector('.masthead');
+  const navigation = masthead.querySelector('.nav');
+  const destinations = Array.from(navigation.querySelectorAll('a')).map(link => ({
+    link,
+    section: document.getElementById(link.hash.slice(1)),
+  }));
+  let activeLink = navigation.querySelector('[aria-current]');
+  let framePending = false;
+
+  function updateNavigation() {
+    framePending = false;
+    const sectionLine = masthead.getBoundingClientRect().bottom + 24;
+    let current = destinations[0];
+    for (const destination of destinations.slice(1)) {
+      if (destination.section.getBoundingClientRect().top > sectionLine) break;
+      current = destination;
+    }
+    if (activeLink === current.link) return;
+
+    activeLink?.removeAttribute('aria-current');
+    activeLink = current.link;
+    activeLink.setAttribute('aria-current', 'location');
+
+    const navBounds = navigation.getBoundingClientRect();
+    const tabBounds = activeLink.getBoundingClientRect();
+    if (tabBounds.left < navBounds.left || tabBounds.right > navBounds.right) {
+      navigation.scrollLeft += tabBounds.left - navBounds.left - (navBounds.width - tabBounds.width) / 2;
+    }
+  }
+
+  function scheduleNavigationUpdate() {
+    if (framePending) return;
+    framePending = true;
+    requestAnimationFrame(updateNavigation);
+  }
+
+  addEventListener('scroll', scheduleNavigationUpdate, { passive: true });
+  addEventListener('resize', scheduleNavigationUpdate);
+  addEventListener('pageshow', scheduleNavigationUpdate);
+  updateNavigation();
+</script>
+</body>
+</html>
